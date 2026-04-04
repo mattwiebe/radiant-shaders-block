@@ -231,6 +231,7 @@ class Plugin {
 		$theme_color_slug = isset( $attributes['themeColorSlug'] ) ? sanitize_title( $attributes['themeColorSlug'] ) : '';
 		$theme_color_value = isset( $attributes['themeColorValue'] ) ? self::get_theme_color_value( $attributes['themeColorValue'] ) : '';
 		$show_shader_label = isset( $attributes['showShaderLabel'] ) ? (bool) $attributes['showShaderLabel'] : false;
+		$invert_tone = isset( $attributes['invertTone'] ) ? (bool) $attributes['invertTone'] : false;
 		$shader_blend_mode = isset( $attributes['shaderBlendMode'] ) ? sanitize_key( $attributes['shaderBlendMode'] ) : 'normal';
 		$overlay_blend_mode = isset( $attributes['overlayBlendMode'] ) ? sanitize_key( $attributes['overlayBlendMode'] ) : 'soft-light';
 		$overlay_opacity = isset( $attributes['overlayOpacity'] ) ? (float) $attributes['overlayOpacity'] : 36;
@@ -302,6 +303,7 @@ class Plugin {
 			'themeColorSlug' => $theme_color_slug,
 			'themeColorValue' => $theme_color_value,
 			'showShaderLabel' => $show_shader_label,
+			'invertTone' => $invert_tone,
 			'shaderBlendMode' => $shader_blend_mode,
 			'overlayBlendMode' => $overlay_blend_mode,
 			'overlayOpacity' => 'theme' === $color_mode ? $overlay_opacity : 0,
@@ -351,6 +353,9 @@ class Plugin {
 			'scheme'       => $config['scheme'],
 			'schemeFilter' => $config['schemeFilter'],
 			'showShaderLabel' => $config['showShaderLabel'],
+			'themeColorSlug' => $config['themeColorSlug'],
+			'themeColorValue' => $config['themeColorValue'],
+			'invertTone' => $config['invertTone'],
 			'shaderBlendMode' => $config['shaderBlendMode'],
 			'params'       => $config['params'],
 			'assetsBaseUrl' => WP_RADIANT_SHADERS_URL . 'assets/radiant-static/',

@@ -1,4 +1,4 @@
-import { COLOR_SCHEME_MAP } from './color-schemes';
+import { buildShaderFilter, resolveSchemeColor } from './color-treatment';
 
 function applyShaderParams( iframe, params ) {
 	if ( ! iframe?.contentWindow || ! params ) {
@@ -45,6 +45,36 @@ function getShaderSrc( config ) {
 	return `${ baseUrl }${ file }`;
 }
 
+function resolveThemeColor( element, config ) {
+	if ( config.themeColorValue ) {
+		return config.themeColorValue;
+	}
+
+	if ( ! config.themeColorSlug || ! element ) {
+		return '';
+	}
+
+	const styles = window.getComputedStyle(
+		element.closest( '.wp-block-wp-radiant-shaders-radiant-shader' ) ||
+			document.documentElement
+	);
+
+	return styles
+		.getPropertyValue( `--wp--preset--color--${ config.themeColorSlug }` )
+		.trim();
+}
+
+function getShaderFilter( element, config ) {
+	const targetColor =
+		config.colorMode === 'theme'
+			? resolveThemeColor( element, config )
+			: resolveSchemeColor( config.scheme );
+
+	return buildShaderFilter( targetColor, {
+		invertTone: Boolean( config.invertTone ),
+	} );
+}
+
 export function mountRadiantShader( element, config ) {
 	if ( ! element || ! config?.shaderFile ) {
 		return null;
@@ -64,12 +94,7 @@ export function mountRadiantShader( element, config ) {
 	}
 
 	const nextSrc = getShaderSrc( config );
-	const nextFilter =
-		config.colorMode === 'theme'
-			? 'none'
-			: COLOR_SCHEME_MAP[ config.scheme ]?.filter ??
-			  config.schemeFilter ??
-			  'none';
+	const nextFilter = getShaderFilter( element, config );
 
 	iframe.style.filter = nextFilter;
 	iframe.style.mixBlendMode = config.shaderBlendMode || 'normal';

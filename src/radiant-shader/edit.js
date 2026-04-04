@@ -20,6 +20,10 @@ import {
 
 import shaders from '../shared/radiant-shaders.json';
 import { COLOR_SCHEMES } from '../shared/color-schemes';
+import {
+	buildShaderFilter,
+	resolveSchemeColor,
+} from '../shared/color-treatment';
 import { mountRadiantShader } from '../shared/runtime';
 
 const TEMPLATE = [
@@ -138,6 +142,7 @@ export default function Edit( { attributes, setAttributes } ) {
 		themeColorSlug,
 		themeColorValue,
 		showShaderLabel,
+		invertTone,
 		shaderBlendMode,
 		overlayBlendMode,
 		overlayOpacity,
@@ -158,6 +163,13 @@ export default function Edit( { attributes, setAttributes } ) {
 		themePaletteOptions,
 		themeColorSlug
 	);
+	const targetShaderColor =
+		colorMode === 'theme'
+			? themeColorValue || resolvedThemeColorValue
+			: resolveSchemeColor( scheme );
+	const computedShaderFilter = buildShaderFilter( targetShaderColor, {
+		invertTone,
+	} );
 
 	useEffect( () => {
 		const defaultParams = getDefaultParams( shader );
@@ -197,7 +209,10 @@ export default function Edit( { attributes, setAttributes } ) {
 			shaderFile: shader.file,
 			colorMode,
 			scheme,
+			themeColorSlug,
+			themeColorValue,
 			showShaderLabel,
+			invertTone,
 			shaderBlendMode,
 			params: params || getDefaultParams( shader ),
 			assetsBaseUrl,
@@ -206,7 +221,10 @@ export default function Edit( { attributes, setAttributes } ) {
 		shader,
 		colorMode,
 		scheme,
+		themeColorSlug,
+		themeColorValue,
 		showShaderLabel,
+		invertTone,
 		shaderBlendMode,
 		params,
 		assetsBaseUrl,
@@ -291,6 +309,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							onChange={ ( value ) =>
 								setAttributes( { scheme: value } )
 							}
+							help={ computedShaderFilter }
 						/>
 					) }
 					{ colorMode === 'theme' && (
@@ -320,7 +339,7 @@ export default function Edit( { attributes, setAttributes } ) {
 							help={
 								themePaletteOptions.length
 									? __(
-											'Uses the selected theme palette color to tint and ground the shader.',
+											'Uses the selected theme palette color as the basis for shader hue rotation and tint.',
 											'wp-radiant-shaders'
 									  )
 									: __(
@@ -383,6 +402,17 @@ export default function Edit( { attributes, setAttributes } ) {
 							'wp-radiant-shaders'
 						) }
 					/>
+					<ToggleControl
+						label={ __( 'Invert tone', 'wp-radiant-shaders' ) }
+						checked={ invertTone }
+						onChange={ ( value ) =>
+							setAttributes( { invertTone: value } )
+						}
+						help={ __(
+							'Applies invert plus 180-degree hue swapping before the computed color treatment.',
+							'wp-radiant-shaders'
+						) }
+					/>
 					<SelectControl
 						label={ __(
 							'Shader blend mode',
@@ -397,6 +427,11 @@ export default function Edit( { attributes, setAttributes } ) {
 							'Blends the shader layer against the block surface.',
 							'wp-radiant-shaders'
 						) }
+					/>
+					<BaseControl
+						id="wp-radiant-shader-computed-filter"
+						label={ __( 'Computed filter', 'wp-radiant-shaders' ) }
+						help={ computedShaderFilter }
 					/>
 				</PanelBody>
 				{ colorMode === 'theme' && (
