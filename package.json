@@ -1,0 +1,19 @@
+{
+  "name": "wp-radiant-shaders",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WordPress block plugin for using Radiant shaders as animated backgrounds.",
+  "license": "MIT",
+  "scripts": {
+    "sync:radiant": "node scripts/sync-radiant.mjs",
+    "build": "npm run sync:radiant && wp-scripts build",
+    "start": "npm run sync:radiant && wp-scripts start",
+    "lint:js": "wp-scripts lint-js src scripts/*.mjs",
+    "format": "wp-scripts format src scripts/*.mjs"
+  },
+  "devDependencies": {
+    "@wordpress/scripts": "30.26.2",
+    "radiant-source": "github:pbakaus/radiant",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,70 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "wp-radiant-shaders/radiant-shader",
+	"version": "0.1.0",
+	"title": "Radiant Shader",
+	"category": "design",
+	"icon": "art",
+	"description": "Use Radiant shaders as animated block backgrounds with live parameter controls.",
+	"textdomain": "wp-radiant-shaders",
+	"supports": {
+		"align": [ "wide", "full" ],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"anchor": true,
+		"html": false
+	},
+	"attributes": {
+		"shaderId": {
+			"type": "string",
+			"default": "flow-field"
+		},
+		"scheme": {
+			"type": "string",
+			"default": "amber"
+		},
+		"colorMode": {
+			"type": "string",
+			"default": "preset"
+		},
+		"themeColorSlug": {
+			"type": "string",
+			"default": ""
+		},
+		"themeColorValue": {
+			"type": "string",
+			"default": ""
+		},
+		"showShaderLabel": {
+			"type": "boolean",
+			"default": false
+		},
+		"shaderBlendMode": {
+			"type": "string",
+			"default": "normal"
+		},
+		"overlayBlendMode": {
+			"type": "string",
+			"default": "soft-light"
+		},
+		"overlayOpacity": {
+			"type": "number",
+			"default": 36
+		},
+		"params": {
+			"type": "object",
+			"default": {}
+		},
+		"minHeight": {
+			"type": "number",
+			"default": 480
+		}
+	},
+	"editorScript": "file:./index.js",
+	"viewScript": "file:./view.js",
+	"editorStyle": "file:./index.css",
+	"style": "file:./style-index.css"
+}

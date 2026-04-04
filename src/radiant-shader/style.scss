@@ -1,0 +1,46 @@
+.wp-block-wp-radiant-shaders-radiant-shader {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: var(--wp-radiant-shader-min-height, 480px);
+  background:
+    radial-gradient(circle at top left, rgba(255, 178, 76, 0.08), transparent 42%),
+    radial-gradient(circle at bottom right, rgba(255, 110, 0, 0.06), transparent 38%),
+    var(--wp-radiant-surface, #120804);
+  color: #fff3de;
+}
+
+.wp-block-wp-radiant-shaders-radiant-shader > .wp-radiant-shader__background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.wp-block-wp-radiant-shaders-radiant-shader > .wp-radiant-shader__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(15, 8, 3, 0.1), rgba(15, 8, 3, 0.32)),
+    var(--wp-radiant-overlay-tint, rgba(255, 166, 60, 0.35));
+  mix-blend-mode: var(--wp-radiant-overlay-blend-mode, soft-light);
+  opacity: calc(var(--wp-radiant-overlay-opacity, 36) / 100);
+  pointer-events: none;
+}
+
+.wp-block-wp-radiant-shaders-radiant-shader > .wp-radiant-shader__content {
+  position: relative;
+  z-index: 2;
+  min-height: inherit;
+  padding: clamp(2rem, 5vw, 5rem);
+}
+
+.wp-radiant-shader__iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  mix-blend-mode: var(--wp-radiant-shader-blend-mode, normal);
+}
