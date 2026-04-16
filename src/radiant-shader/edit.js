@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from '@wordpress/element';
+import { useEffect, useMemo, useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { useSelect } from '@wordpress/data';
 import {
@@ -26,41 +26,27 @@ import {
 } from '../shared/color-treatment';
 import { mountRadiantShader } from '../shared/runtime';
 
-const TEMPLATE = [
-	[
-		'core/group',
-		{
-			layout: {
-				type: 'constrained',
-			},
-		},
-		[
-			[
-				'core/heading',
-				{
-					level: 2,
-					content: 'Radiant Shader',
-				},
-			],
-			[
-				'core/paragraph',
-				{
-					content: 'Layer content over a live shader background.',
-				},
-			],
-		],
-	],
-];
-
 function getShader( shaderId ) {
 	return shaders.find( ( shader ) => shader.id === shaderId ) || shaders[ 0 ];
 }
 
-function getShaderOptions() {
-	return shaders.map( ( shader ) => ( {
-		label: `${ shader.title } [${ shader.technique }]`,
-		value: shader.id,
-	} ) );
+function getShaderType( technique ) {
+	return technique === 'webgl' ? '3d' : '2d';
+}
+
+function getFilteredShaderOptions( shaderType ) {
+	return shaders
+		.filter(
+			( shader ) =>
+				shaderType === 'all' ||
+				getShaderType( shader.technique ) === shaderType
+		)
+		.map( ( shader ) => ( {
+			label: `${ shader.title } [${ getShaderType(
+				shader.technique
+			).toUpperCase() }]`,
+			value: shader.id,
+		} ) );
 }
 
 function getDefaultParams( shader ) {
@@ -104,17 +90,26 @@ function getThemeColorValue( options, slug ) {
 	return options.find( ( option ) => option.value === slug )?.color || '';
 }
 
-const OVERLAY_BLEND_MODE_OPTIONS = [
-	{ label: 'Soft Light', value: 'soft-light' },
-	{ label: 'Overlay', value: 'overlay' },
-	{ label: 'Multiply', value: 'multiply' },
-	{ label: 'Screen', value: 'screen' },
-	{ label: 'Color', value: 'color' },
-	{ label: 'Luminosity', value: 'luminosity' },
-	{ label: 'Hard Light', value: 'hard-light' },
-	{ label: 'Difference', value: 'difference' },
-	{ label: 'Normal', value: 'normal' },
-];
+function normalizeHexColor( value ) {
+	if ( ! value || typeof value !== 'string' ) {
+		return '';
+	}
+
+	const hex = value.trim().replace( '#', '' ).toLowerCase();
+
+	if ( hex.length === 3 ) {
+		return `#${ hex
+			.split( '' )
+			.map( ( char ) => `${ char }${ char }` )
+			.join( '' ) }`;
+	}
+
+	if ( hex.length === 6 ) {
+		return `#${ hex }`;
+	}
+
+	return value.trim().toLowerCase();
+}
 
 const SHADER_BLEND_MODE_OPTIONS = [
 	{ label: 'Normal', value: 'normal' },
@@ -133,6 +128,12 @@ const COLOR_MODE_OPTIONS = [
 	{ label: 'Theme Color', value: 'theme' },
 ];
 
+const SHADER_TYPE_OPTIONS = [
+	{ label: 'All', value: 'all' },
+	{ label: '2D', value: '2d' },
+	{ label: '3D', value: '3d' },
+];
+
 export default function Edit( { attributes, setAttributes } ) {
 	const {
 		align,
@@ -144,12 +145,10 @@ export default function Edit( { attributes, setAttributes } ) {
 		showShaderLabel,
 		invertTone,
 		shaderBlendMode,
-		overlayBlendMode,
-		overlayOpacity,
 		params,
-		minHeight,
 	} = attributes;
 	const shader = useMemo( () => getShader( shaderId ), [ shaderId ] );
+	const [ shaderType, setShaderType ] = useState( 'all' );
 	const previewRef = useRef( null );
 	const assetsBaseUrl = window.WPRadiantShadersBlock?.assetsBaseUrl || '';
 	const themePaletteOptions = useSelect(
@@ -163,13 +162,25 @@ export default function Edit( { attributes, setAttributes } ) {
 		themePaletteOptions,
 		themeColorSlug
 	);
+	const effectiveThemeColorValue =
+		themeColorValue || resolvedThemeColorValue || '';
+	const hasCustomThemeColor =
+		colorMode === 'theme' &&
+		themeColorSlug &&
+		effectiveThemeColorValue &&
+		normalizeHexColor( effectiveThemeColorValue ) !==
+			normalizeHexColor( resolvedThemeColorValue );
 	const targetShaderColor =
 		colorMode === 'theme'
-			? themeColorValue || resolvedThemeColorValue
+			? effectiveThemeColorValue
 			: resolveSchemeColor( scheme );
 	const computedShaderFilter = buildShaderFilter( targetShaderColor, {
 		invertTone,
 	} );
+	const shaderOptions = useMemo(
+		() => getFilteredShaderOptions( shaderType ),
+		[ shaderType ]
+	);
 
 	useEffect( () => {
 		const defaultParams = getDefaultParams( shader );
@@ -233,20 +244,11 @@ export default function Edit( { attributes, setAttributes } ) {
 	const blockProps = useBlockProps( {
 		className: 'wp-radiant-shader',
 		style: {
-			'--wp-radiant-shader-min-height': `${ minHeight }px`,
 			'--wp-radiant-shader-blend-mode': shaderBlendMode,
-			'--wp-radiant-overlay-opacity':
-				colorMode === 'theme' ? overlayOpacity : 0,
-			'--wp-radiant-overlay-blend-mode': overlayBlendMode,
 			'--wp-radiant-surface':
-				colorMode === 'theme' && themeColorValue
-					? `color-mix(in srgb, ${ themeColorValue } 18%, #120804)`
+				colorMode === 'theme' && effectiveThemeColorValue
+					? `color-mix(in srgb, ${ effectiveThemeColorValue } 18%, #120804)`
 					: '#120804',
-			...( colorMode === 'theme' && themeColorValue
-				? {
-						'--wp-radiant-overlay-tint': themeColorValue,
-				  }
-				: {} ),
 		},
 	} );
 
@@ -255,7 +257,6 @@ export default function Edit( { attributes, setAttributes } ) {
 			className: 'wp-radiant-shader__content',
 		},
 		{
-			template: TEMPLATE,
 			templateLock: false,
 		}
 	);
@@ -276,9 +277,15 @@ export default function Edit( { attributes, setAttributes } ) {
 					initialOpen
 				>
 					<SelectControl
+						label={ __( 'Shader type', 'wp-radiant-shaders' ) }
+						value={ shaderType }
+						options={ SHADER_TYPE_OPTIONS }
+						onChange={ ( value ) => setShaderType( value ) }
+					/>
+					<SelectControl
 						label={ __( 'Shader', 'wp-radiant-shaders' ) }
 						value={ shader.id }
-						options={ getShaderOptions() }
+						options={ shaderOptions }
 						onChange={ ( value ) => {
 							const nextShader = getShader( value );
 							setAttributes( {
@@ -287,6 +294,11 @@ export default function Edit( { attributes, setAttributes } ) {
 							} );
 						} }
 					/>
+				</PanelBody>
+				<PanelBody
+					title={ __( 'Color', 'wp-radiant-shaders' ) }
+					initialOpen={ false }
+				>
 					<SelectControl
 						label={ __( 'Color source', 'wp-radiant-shaders' ) }
 						value={ colorMode }
@@ -315,7 +327,11 @@ export default function Edit( { attributes, setAttributes } ) {
 					{ colorMode === 'theme' && (
 						<SelectControl
 							label={ __( 'Theme color', 'wp-radiant-shaders' ) }
-							value={ themeColorSlug }
+							value={
+								hasCustomThemeColor
+									? '__custom__'
+									: themeColorSlug
+							}
 							options={ [
 								{
 									label: __(
@@ -324,9 +340,24 @@ export default function Edit( { attributes, setAttributes } ) {
 									),
 									value: '',
 								},
+								...( hasCustomThemeColor
+									? [
+											{
+												label: __(
+													'Custom',
+													'wp-radiant-shaders'
+												),
+												value: '__custom__',
+											},
+									  ]
+									: [] ),
 								...themePaletteOptions,
 							] }
-							onChange={ ( value ) =>
+							onChange={ ( value ) => {
+								if ( value === '__custom__' ) {
+									return;
+								}
+
 								setAttributes( {
 									themeColorSlug: value,
 									themeColorValue:
@@ -334,12 +365,12 @@ export default function Edit( { attributes, setAttributes } ) {
 											themePaletteOptions,
 											value
 										) || '',
-								} )
-							}
+								} );
+							} }
 							help={
 								themePaletteOptions.length
 									? __(
-											'Uses the selected theme palette color as the basis for shader hue rotation and tint.',
+											'Uses the selected theme palette color as the basis for shader hue rotation.',
 											'wp-radiant-shaders'
 									  )
 									: __(
@@ -351,7 +382,7 @@ export default function Edit( { attributes, setAttributes } ) {
 					) }
 					{ colorMode === 'theme' &&
 						themeColorSlug &&
-						themeColorValue && (
+						effectiveThemeColorValue && (
 							<BaseControl
 								id="wp-radiant-shader-theme-color-value"
 								label={ __(
@@ -364,7 +395,7 @@ export default function Edit( { attributes, setAttributes } ) {
 								) }
 							>
 								<ColorPicker
-									color={ themeColorValue }
+									color={ effectiveThemeColorValue }
 									enableAlpha={ false }
 									onChange={ ( value ) =>
 										setAttributes( {
@@ -374,34 +405,6 @@ export default function Edit( { attributes, setAttributes } ) {
 								/>
 							</BaseControl>
 						) }
-					<RangeControl
-						label={ __( 'Minimum height', 'wp-radiant-shaders' ) }
-						value={ minHeight }
-						min={ 180 }
-						max={ 1600 }
-						step={ 10 }
-						onChange={ ( value ) =>
-							setAttributes( {
-								minHeight: Number( value ) || 480,
-							} )
-						}
-					/>
-				</PanelBody>
-				<PanelBody
-					title={ __( 'Shader Layer', 'wp-radiant-shaders' ) }
-					initialOpen={ false }
-				>
-					<ToggleControl
-						label={ __( 'Show shader name', 'wp-radiant-shaders' ) }
-						checked={ showShaderLabel }
-						onChange={ ( value ) =>
-							setAttributes( { showShaderLabel: value } )
-						}
-						help={ __(
-							'Toggles the title label rendered inside the shader iframe.',
-							'wp-radiant-shaders'
-						) }
-					/>
 					<ToggleControl
 						label={ __( 'Invert tone', 'wp-radiant-shaders' ) }
 						checked={ invertTone }
@@ -434,39 +437,6 @@ export default function Edit( { attributes, setAttributes } ) {
 						help={ computedShaderFilter }
 					/>
 				</PanelBody>
-				{ colorMode === 'theme' && (
-					<PanelBody
-						title={ __(
-							'Theme Color Effects',
-							'wp-radiant-shaders'
-						) }
-						initialOpen={ false }
-					>
-						<SelectControl
-							label={ __(
-								'Tint blend mode',
-								'wp-radiant-shaders'
-							) }
-							value={ overlayBlendMode }
-							options={ OVERLAY_BLEND_MODE_OPTIONS }
-							onChange={ ( value ) =>
-								setAttributes( { overlayBlendMode: value } )
-							}
-						/>
-						<RangeControl
-							label={ __( 'Tint opacity', 'wp-radiant-shaders' ) }
-							value={ overlayOpacity }
-							min={ 0 }
-							max={ 100 }
-							step={ 1 }
-							onChange={ ( value ) =>
-								setAttributes( {
-									overlayOpacity: Number( value ) || 0,
-								} )
-							}
-						/>
-					</PanelBody>
-				) }
 				<PanelBody
 					title={ __( 'Parameters', 'wp-radiant-shaders' ) }
 					initialOpen
@@ -500,6 +470,17 @@ export default function Edit( { attributes, setAttributes } ) {
 							) }
 						/>
 					) }
+					<ToggleControl
+						label={ __( 'Show shader name', 'wp-radiant-shaders' ) }
+						checked={ showShaderLabel }
+						onChange={ ( value ) =>
+							setAttributes( { showShaderLabel: value } )
+						}
+						help={ __(
+							'Toggles the title label rendered inside the shader iframe.',
+							'wp-radiant-shaders'
+						) }
+					/>
 				</PanelBody>
 			</InspectorControls>
 			<div { ...blockProps }>

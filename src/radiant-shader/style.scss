@@ -2,7 +2,7 @@
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  min-height: var(--wp-radiant-shader-min-height, 480px);
+  min-height: 300px;
   background:
     radial-gradient(circle at top left, rgba(255, 178, 76, 0.08), transparent 42%),
     radial-gradient(circle at bottom right, rgba(255, 110, 0, 0.06), transparent 38%),
@@ -22,11 +22,7 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  background:
-    linear-gradient(180deg, rgba(15, 8, 3, 0.1), rgba(15, 8, 3, 0.32)),
-    var(--wp-radiant-overlay-tint, rgba(255, 166, 60, 0.35));
-  mix-blend-mode: var(--wp-radiant-overlay-blend-mode, soft-light);
-  opacity: calc(var(--wp-radiant-overlay-opacity, 36) / 100);
+  background: linear-gradient(180deg, rgba(15, 8, 3, 0.1), rgba(15, 8, 3, 0.32));
   pointer-events: none;
 }
 

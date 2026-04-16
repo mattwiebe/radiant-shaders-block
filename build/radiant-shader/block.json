@@ -13,6 +13,9 @@
       "wide",
       "full"
     ],
+    "dimensions": {
+      "minHeight": true
+    },
     "spacing": {
       "margin": true,
       "padding": true
@@ -53,21 +56,9 @@
       "type": "string",
       "default": "normal"
     },
-    "overlayBlendMode": {
-      "type": "string",
-      "default": "soft-light"
-    },
-    "overlayOpacity": {
-      "type": "number",
-      "default": 36
-    },
     "params": {
       "type": "object",
       "default": {}
-    },
-    "minHeight": {
-      "type": "number",
-      "default": 480
     }
   },
   "editorScript": "file:./index.js",

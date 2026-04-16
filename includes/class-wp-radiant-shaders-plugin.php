@@ -185,20 +185,6 @@ class Plugin {
 	}
 
 	/**
-	 * Convert a theme palette slug to the matching CSS custom property.
-	 *
-	 * @param string $slug Theme palette slug.
-	 * @return string
-	 */
-	protected static function get_theme_palette_css_var( $slug ) {
-		if ( empty( $slug ) ) {
-			return '';
-		}
-
-		return sprintf( 'var(--wp--preset--color--%s)', sanitize_title( $slug ) );
-	}
-
-	/**
 	 * Sanitize an optional custom theme color value.
 	 *
 	 * @param string $value Raw color value.
@@ -233,8 +219,6 @@ class Plugin {
 		$show_shader_label = isset( $attributes['showShaderLabel'] ) ? (bool) $attributes['showShaderLabel'] : false;
 		$invert_tone = isset( $attributes['invertTone'] ) ? (bool) $attributes['invertTone'] : false;
 		$shader_blend_mode = isset( $attributes['shaderBlendMode'] ) ? sanitize_key( $attributes['shaderBlendMode'] ) : 'normal';
-		$overlay_blend_mode = isset( $attributes['overlayBlendMode'] ) ? sanitize_key( $attributes['overlayBlendMode'] ) : 'soft-light';
-		$overlay_opacity = isset( $attributes['overlayOpacity'] ) ? (float) $attributes['overlayOpacity'] : 36;
 
 		if ( ! isset( $schemes[ $scheme ] ) ) {
 			$scheme = 'amber';
@@ -244,18 +228,9 @@ class Plugin {
 			$color_mode = 'preset';
 		}
 
-		if ( ! in_array( $overlay_blend_mode, self::get_overlay_blend_modes(), true ) ) {
-			$overlay_blend_mode = 'soft-light';
-		}
-
 		if ( ! in_array( $shader_blend_mode, self::get_shader_blend_modes(), true ) ) {
 			$shader_blend_mode = 'normal';
 		}
-
-		$overlay_opacity = min( max( $overlay_opacity, 0 ), 100 );
-
-		$min_height = isset( $attributes['minHeight'] ) ? absint( $attributes['minHeight'] ) : 480;
-		$min_height = min( max( $min_height, 180 ), 1600 );
 
 		$defaults = array();
 		$params   = array();
@@ -295,23 +270,17 @@ class Plugin {
 		}
 
 		return array(
-			'shader'       => $shader,
-			'shaderId'     => $shader_id,
-			'colorMode'    => $color_mode,
-			'scheme'       => $scheme,
-			'schemeFilter' => 'preset' === $color_mode ? $schemes[ $scheme ] : 'none',
-			'themeColorSlug' => $theme_color_slug,
+			'shader'          => $shader,
+			'shaderId'        => $shader_id,
+			'colorMode'       => $color_mode,
+			'scheme'          => $scheme,
+			'schemeFilter'    => 'preset' === $color_mode ? $schemes[ $scheme ] : 'none',
+			'themeColorSlug'  => $theme_color_slug,
 			'themeColorValue' => $theme_color_value,
 			'showShaderLabel' => $show_shader_label,
-			'invertTone' => $invert_tone,
+			'invertTone'      => $invert_tone,
 			'shaderBlendMode' => $shader_blend_mode,
-			'overlayBlendMode' => $overlay_blend_mode,
-			'overlayOpacity' => 'theme' === $color_mode ? $overlay_opacity : 0,
-			'overlayTint' => 'theme' === $color_mode
-				? ( $theme_color_value ? $theme_color_value : self::get_theme_palette_css_var( $theme_color_slug ) )
-				: '',
-			'minHeight'    => $min_height,
-			'params'       => $params,
+			'params'          => $params,
 		);
 	}
 
@@ -329,36 +298,30 @@ class Plugin {
 			array(
 				'class' => 'wp-radiant-shader',
 				'style' => sprintf(
-					'--wp-radiant-shader-min-height:%1$dpx;--wp-radiant-shader-blend-mode:%2$s;--wp-radiant-overlay-opacity:%3$s;--wp-radiant-overlay-blend-mode:%4$s;--wp-radiant-surface:%5$s;%6$s',
-					(int) $config['minHeight'],
+					'--wp-radiant-shader-blend-mode:%1$s;--wp-radiant-surface:%2$s;',
 					esc_attr( $config['shaderBlendMode'] ),
-					esc_attr( (string) $config['overlayOpacity'] ),
-					esc_attr( $config['overlayBlendMode'] ),
 					esc_attr(
-						$config['overlayTint']
-							? sprintf( 'color-mix(in srgb, %s 18%%, #120804)', $config['overlayTint'] )
+						$config['themeColorValue']
+							? sprintf( 'color-mix(in srgb, %s 18%%, #120804)', $config['themeColorValue'] )
 							: '#120804'
-					),
-					$config['overlayTint']
-						? '--wp-radiant-overlay-tint:' . esc_attr( $config['overlayTint'] ) . ';'
-						: ''
+					)
 				),
 			)
 		);
 
 		$payload = array(
-			'shaderId'     => $config['shaderId'],
-			'shaderFile'   => $config['shader']['file'],
-			'colorMode'    => $config['colorMode'],
-			'scheme'       => $config['scheme'],
-			'schemeFilter' => $config['schemeFilter'],
+			'shaderId'        => $config['shaderId'],
+			'shaderFile'      => $config['shader']['file'],
+			'colorMode'       => $config['colorMode'],
+			'scheme'          => $config['scheme'],
+			'schemeFilter'    => $config['schemeFilter'],
 			'showShaderLabel' => $config['showShaderLabel'],
-			'themeColorSlug' => $config['themeColorSlug'],
+			'themeColorSlug'  => $config['themeColorSlug'],
 			'themeColorValue' => $config['themeColorValue'],
-			'invertTone' => $config['invertTone'],
+			'invertTone'      => $config['invertTone'],
 			'shaderBlendMode' => $config['shaderBlendMode'],
-			'params'       => $config['params'],
-			'assetsBaseUrl' => WP_RADIANT_SHADERS_URL . 'assets/radiant-static/',
+			'params'          => $config['params'],
+			'assetsBaseUrl'   => WP_RADIANT_SHADERS_URL . 'assets/radiant-static/',
 		);
 
 		ob_start();
