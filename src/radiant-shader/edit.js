@@ -145,7 +145,6 @@ export default function Edit( { attributes, setAttributes } ) {
 		scheme,
 		themeColorSlug,
 		themeColorValue,
-		showShaderLabel,
 		invertTone,
 		shaderBlendMode,
 		iframeProps,
@@ -243,7 +242,6 @@ export default function Edit( { attributes, setAttributes } ) {
 			scheme,
 			themeColorSlug,
 			themeColorValue,
-			showShaderLabel,
 			invertTone,
 			shaderBlendMode,
 			params: params || getDefaultParams( shader ),
@@ -255,7 +253,6 @@ export default function Edit( { attributes, setAttributes } ) {
 		scheme,
 		themeColorSlug,
 		themeColorValue,
-		showShaderLabel,
 		invertTone,
 		shaderBlendMode,
 		params,
@@ -491,17 +488,6 @@ export default function Edit( { attributes, setAttributes } ) {
 							) }
 						/>
 					) }
-					<ToggleControl
-						label={ __( 'Show shader name', 'wp-radiant-shaders' ) }
-						checked={ showShaderLabel }
-						onChange={ ( value ) =>
-							setAttributes( { showShaderLabel: value } )
-						}
-						help={ __(
-							'Toggles the title label rendered inside the shader iframe.',
-							'wp-radiant-shaders'
-						) }
-					/>
 				</PanelBody>
 			</InspectorControls>
 			<div { ...blockProps }>

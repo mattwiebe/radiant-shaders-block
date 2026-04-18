@@ -16,22 +16,9 @@
     width: 100vw;
     height: 100vh;
   }
-  .label {
-    position: fixed;
-    top: 20px;
-    left: 24px;
-    color: rgba(200, 149, 108, 0.6);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    z-index: 10;
-    pointer-events: none;
-  }
 </style>
 </head>
 <body>
-<div class="label">Strange Attractor</div>
 <canvas id="canvas"></canvas>
 <script>
 (function() {
@@ -295,5 +282,5 @@
   });
 })();
 </script>
-</body>
+<script>(function(){var search=new URLSearchParams(window.location.search);var rawParams=search.get("wp_radiant_params");if(!rawParams){return;}var params;try{params=JSON.parse(decodeURIComponent(rawParams));}catch(error){return;}function apply(){Object.entries(params).forEach(function(entry){window.postMessage({type:"param",name:entry[0],value:entry[1]},"*");});}apply();window.addEventListener("load",apply,{once:true});setTimeout(apply,60);}());</script></body>
 </html>

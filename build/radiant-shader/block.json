@@ -44,10 +44,6 @@
       "type": "string",
       "default": ""
     },
-    "showShaderLabel": {
-      "type": "boolean",
-      "default": false
-    },
     "invertTone": {
       "type": "boolean",
       "default": false

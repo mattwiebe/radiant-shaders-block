@@ -35,32 +35,23 @@ function applyShaderParams( iframe, params ) {
 	} );
 }
 
-function syncIframePresentation( iframe, config ) {
-	if ( ! iframe?.contentDocument ) {
-		return;
-	}
-
-	const document = iframe.contentDocument;
-	let styleNode = document.getElementById(
-		'wp-radiant-shader-inline-styles'
-	);
-
-	if ( ! styleNode ) {
-		styleNode = document.createElement( 'style' );
-		styleNode.id = 'wp-radiant-shader-inline-styles';
-		document.head.appendChild( styleNode );
-	}
-
-	styleNode.textContent = config.showShaderLabel
-		? ''
-		: '.label{display:none !important;}';
-}
+function syncIframePresentation() {}
 
 function getShaderSrc( config ) {
 	const baseUrl = config.assetsBaseUrl || '';
 	const file = config.shaderFile || '';
+	const params = new URLSearchParams();
 
-	return `${ baseUrl }${ file }`;
+	if ( config.params && Object.keys( config.params ).length ) {
+		params.set(
+			'wp_radiant_params',
+			encodeURIComponent( JSON.stringify( config.params ) )
+		);
+	}
+
+	const query = params.toString();
+
+	return query ? `${ baseUrl }${ file }?${ query }` : `${ baseUrl }${ file }`;
 }
 
 function resolveThemeColor( element, config ) {

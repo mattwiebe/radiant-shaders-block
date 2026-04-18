@@ -361,47 +361,24 @@ class Plugin {
 	}
 
 	/**
-	 * Build a srcdoc document for a shader asset with inline overrides.
+	 * Build the direct shader iframe URL with persisted params.
 	 *
 	 * @param array $config Normalized block config.
 	 * @return string
 	 */
-	protected static function get_shader_srcdoc( $config ) {
-		$file = isset( $config['shader']['file'] ) ? basename( $config['shader']['file'] ) : '';
-
-		if ( '' === $file ) {
+	protected static function get_shader_src_url( $config ) {
+		if ( empty( $config['shader']['file'] ) ) {
 			return '';
 		}
 
-		$path = WP_RADIANT_SHADERS_DIR . 'assets/radiant-static/' . $file;
+		$url = WP_RADIANT_SHADERS_URL . 'assets/radiant-static/' . ltrim( $config['shader']['file'], '/' );
+		$params = array();
 
-		if ( ! file_exists( $path ) ) {
-			return '';
+		if ( ! empty( $config['params'] ) ) {
+			$params['wp_radiant_params'] = wp_json_encode( $config['params'] );
 		}
 
-		$html = file_get_contents( $path );
-
-		if ( ! is_string( $html ) || '' === $html ) {
-			return '';
-		}
-
-		$overrides = '';
-
-		if ( empty( $config['showShaderLabel'] ) ) {
-			$overrides .= '<style id="wp-radiant-shader-inline-styles">.label{display:none !important;}</style>';
-		}
-
-		$overrides .= '<script>(function(){';
-		$overrides .= 'var params=' . wp_json_encode( $config['params'] ) . ';';
-		$overrides .= 'function applyParams(){if(!params){return;}Object.entries(params).forEach(function(entry){window.postMessage({type:"param",name:entry[0],value:entry[1]},"*");});}';
-		$overrides .= 'applyParams();window.addEventListener("load",applyParams,{once:true});setTimeout(applyParams,60);';
-		$overrides .= '}());</script>';
-
-		if ( false !== stripos( $html, '</body>' ) ) {
-			return preg_replace( '/<\/body>/i', $overrides . '</body>', $html, 1 ) ?: $html . $overrides;
-		}
-
-		return $html . $overrides;
+		return empty( $params ) ? $url : add_query_arg( $params, $url );
 	}
 
 	/**
@@ -417,8 +394,8 @@ class Plugin {
 		wp_enqueue_script( 'wp-dom-ready' );
 		wp_add_inline_script(
 			'wp-dom-ready',
-			'(function(){var init=function(){document.querySelectorAll(".wp-radiant-shader__background[data-wp-radiant-config]").forEach(function(element){var rawConfig=element.getAttribute("data-wp-radiant-config");if(!rawConfig){return;}try{var config=JSON.parse(rawConfig);var iframe=element.querySelector("iframe.wp-radiant-shader__iframe");if(!iframe){iframe=document.createElement("iframe");iframe.className="wp-radiant-shader__iframe";iframe.setAttribute("title",config.shaderId||"Radiant shader");iframe.setAttribute("loading","lazy");iframe.setAttribute("aria-hidden","true");iframe.setAttribute("tabindex","-1");iframe.setAttribute("allow","autoplay; fullscreen");element.replaceChildren(iframe);}var nextSrc=(config.assetsBaseUrl||"")+(config.shaderFile||"");iframe.style.filter=config.computedFilter||"none";iframe.style.mixBlendMode=config.shaderBlendMode||"normal";var syncPresentation=function(){if(!iframe.contentDocument){return;}var doc=iframe.contentDocument;var styleNode=doc.getElementById("wp-radiant-shader-inline-styles");if(!styleNode){styleNode=doc.createElement("style");styleNode.id="wp-radiant-shader-inline-styles";doc.head.appendChild(styleNode);}styleNode.textContent=config.showShaderLabel?"":".label{display:none !important;}";if(config.params&&iframe.contentWindow){Object.entries(config.params).forEach(function(entry){iframe.contentWindow.postMessage({type:\"param\",name:entry[0],value:entry[1]},\"*\");});}};if(iframe.dataset.src!==nextSrc){iframe.dataset.src=nextSrc;iframe.onload=syncPresentation;iframe.src=nextSrc;}else{syncPresentation();}}catch(error){}});};if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init,{once:true});}else{init();}}());',
-			'after'
+				'(function(){var init=function(){document.querySelectorAll(".wp-radiant-shader__background[data-wp-radiant-config]").forEach(function(element){var rawConfig=element.getAttribute("data-wp-radiant-config");if(!rawConfig){return;}try{var config=JSON.parse(rawConfig);var iframe=element.querySelector("iframe.wp-radiant-shader__iframe");if(!iframe){iframe=document.createElement("iframe");iframe.className="wp-radiant-shader__iframe";iframe.setAttribute("title",config.shaderId||"Radiant shader");iframe.setAttribute("loading","lazy");iframe.setAttribute("aria-hidden","true");iframe.setAttribute("tabindex","-1");iframe.setAttribute("allow","autoplay; fullscreen");element.replaceChildren(iframe);}var params=new URLSearchParams();if(config.params&&Object.keys(config.params).length){params.set("wp_radiant_params",JSON.stringify(config.params));}var nextSrc=(config.assetsBaseUrl||"")+(config.shaderFile||"")+(params.toString()?"?"+params.toString():"");iframe.style.filter=config.computedFilter||"none";iframe.style.mixBlendMode=config.shaderBlendMode||"normal";if(iframe.dataset.src!==nextSrc){iframe.dataset.src=nextSrc;iframe.src=nextSrc;}}catch(error){}});};if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init,{once:true});}else{init();}}());',
+				'after'
 		);
 
 		self::$legacy_view_script_enqueued = true;
@@ -444,7 +421,6 @@ class Plugin {
 		$color_mode = isset( $attributes['colorMode'] ) ? sanitize_key( $attributes['colorMode'] ) : 'preset';
 		$theme_color_slug = isset( $attributes['themeColorSlug'] ) ? sanitize_title( $attributes['themeColorSlug'] ) : '';
 		$theme_color_value = isset( $attributes['themeColorValue'] ) ? self::get_theme_color_value( $attributes['themeColorValue'] ) : '';
-		$show_shader_label = isset( $attributes['showShaderLabel'] ) ? (bool) $attributes['showShaderLabel'] : false;
 		$invert_tone = isset( $attributes['invertTone'] ) ? (bool) $attributes['invertTone'] : false;
 		$shader_blend_mode = isset( $attributes['shaderBlendMode'] ) ? sanitize_key( $attributes['shaderBlendMode'] ) : 'normal';
 		$iframe_props = isset( $attributes['iframeProps'] ) ? self::get_iframe_props( $attributes['iframeProps'] ) : array();
@@ -509,7 +485,6 @@ class Plugin {
 			'computedFilter'  => $computed_filter,
 			'themeColorSlug'  => $theme_color_slug,
 			'themeColorValue' => $theme_color_value,
-			'showShaderLabel' => $show_shader_label,
 			'invertTone'      => $invert_tone,
 			'shaderBlendMode' => $shader_blend_mode,
 			'iframeProps'     => $iframe_props,
@@ -526,8 +501,8 @@ class Plugin {
 	 */
 	public static function render_radiant_shader_block( $attributes, $content ) {
 		$config = self::normalize_block_config( $attributes );
-		$srcdoc = ! empty( $config['iframeProps'] ) ? self::get_shader_srcdoc( $config ) : '';
-		$use_static_iframe = '' !== $srcdoc;
+		$iframe_src = ! empty( $config['iframeProps'] ) ? self::get_shader_src_url( $config ) : '';
+		$use_static_iframe = '' !== $iframe_src;
 
 		$wrapper_attributes = get_block_wrapper_attributes(
 			array(
@@ -554,7 +529,6 @@ class Plugin {
 			'colorMode'       => $config['colorMode'],
 			'scheme'          => $config['scheme'],
 			'computedFilter'  => $config['computedFilter'],
-			'showShaderLabel' => $config['showShaderLabel'],
 			'themeColorSlug'  => $config['themeColorSlug'],
 			'themeColorValue' => $config['themeColorValue'],
 			'invertTone'      => $config['invertTone'],
@@ -572,7 +546,7 @@ class Plugin {
 					data-wp-radiant-config="<?php echo esc_attr( wp_json_encode( $payload ) ); ?>"
 				<?php endif; ?>
 			>
-				<?php if ( $use_static_iframe && '' !== $srcdoc ) : ?>
+				<?php if ( $use_static_iframe && '' !== $iframe_src ) : ?>
 					<iframe
 						class="wp-radiant-shader__iframe"
 						title="<?php echo esc_attr( $config['shaderId'] ); ?>"
@@ -581,7 +555,7 @@ class Plugin {
 						tabindex="-1"
 						allow="autoplay; fullscreen"
 						style="<?php echo esc_attr( sprintf( 'filter:%1$s;mix-blend-mode:%2$s;', $config['iframeProps']['filter'], $config['iframeProps']['mixBlendMode'] ) ); ?>"
-						srcdoc="<?php echo esc_attr( $srcdoc ); ?>"
+						src="<?php echo esc_url( $iframe_src ); ?>"
 					></iframe>
 				<?php endif; ?>
 			</div>

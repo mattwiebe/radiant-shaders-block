@@ -168,5 +168,5 @@
   }
 })();
 </script>
-</body>
+<script>(function(){var search=new URLSearchParams(window.location.search);var rawParams=search.get("wp_radiant_params");if(!rawParams){return;}var params;try{params=JSON.parse(decodeURIComponent(rawParams));}catch(error){return;}function apply(){Object.entries(params).forEach(function(entry){window.postMessage({type:"param",name:entry[0],value:entry[1]},"*");});}apply();window.addEventListener("load",apply,{once:true});setTimeout(apply,60);}());</script></body>
 </html>

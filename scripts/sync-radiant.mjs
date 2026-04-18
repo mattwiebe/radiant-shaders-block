@@ -92,10 +92,27 @@ async function copyStaticShaders() {
 				( entry ) => entry.isFile() && entry.name.endsWith( '.html' )
 			)
 			.map( async ( entry ) => {
-				await fs.copyFile(
-					path.join( staticSourceDir, entry.name ),
-					path.join( targetStaticDir, entry.name )
+				const sourcePath = path.join( staticSourceDir, entry.name );
+				const targetPath = path.join( targetStaticDir, entry.name );
+				const html = await fs.readFile( sourcePath, 'utf8' );
+				const withoutLabelMarkup = html.replace(
+					/<div class="label">[\s\S]*?<\/div>\s*/i,
+					''
 				);
+				const withoutLabelStyles = withoutLabelMarkup.replace(
+					/\s*\.label\s*\{[\s\S]*?\}\s*/i,
+					'\n'
+				);
+				const bootScript =
+					'<script>(function(){var search=new URLSearchParams(window.location.search);var rawParams=search.get("wp_radiant_params");if(!rawParams){return;}var params;try{params=JSON.parse(decodeURIComponent(rawParams));}catch(error){return;}function apply(){Object.entries(params).forEach(function(entry){window.postMessage({type:"param",name:entry[0],value:entry[1]},"*");});}apply();window.addEventListener("load",apply,{once:true});setTimeout(apply,60);}());</script>';
+				const transformedHtml = withoutLabelStyles.includes( '</body>' )
+					? withoutLabelStyles.replace(
+							/<\/body>/i,
+							`${ bootScript }</body>`
+					  )
+					: `${ withoutLabelStyles }\n${ bootScript }`;
+
+				await fs.writeFile( targetPath, transformedHtml );
 			} )
 	);
 }
