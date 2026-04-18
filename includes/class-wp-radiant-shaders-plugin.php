@@ -20,6 +20,13 @@ class Plugin {
 	protected static $shader_metadata = null;
 
 	/**
+	 * Tracks whether the legacy fallback initializer was already enqueued.
+	 *
+	 * @var bool
+	 */
+	protected static $legacy_view_script_enqueued = false;
+
+	/**
 	 * Start the plugin.
 	 *
 	 * @return void
@@ -119,12 +126,12 @@ class Plugin {
 	 */
 	protected static function get_color_schemes() {
 		return array(
-			'amber'   => 'none',
-			'mono'    => 'grayscale(1)',
-			'blue'    => 'hue-rotate(175deg)',
-			'rose'    => 'hue-rotate(300deg) saturate(1.1)',
-			'emerald' => 'hue-rotate(90deg) saturate(1.2)',
-			'arctic'  => 'hue-rotate(180deg) saturate(0.5) brightness(1.1)',
+			'amber'   => '#c8956c',
+			'mono'    => '#a7a298',
+			'blue'    => '#6ca7c8',
+			'rose'    => '#d96c97',
+			'emerald' => '#59b88d',
+			'arctic'  => '#8ebfd1',
 		);
 	}
 
@@ -197,6 +204,227 @@ class Plugin {
 	}
 
 	/**
+	 * Clamp a value to a range.
+	 *
+	 * @param float $value Raw value.
+	 * @param float $min Minimum.
+	 * @param float $max Maximum.
+	 * @return float
+	 */
+	protected static function clamp( $value, $min, $max ) {
+		return min( max( $value, $min ), $max );
+	}
+
+	/**
+	 * Parse a hex color into RGB channels.
+	 *
+	 * @param string $value Hex color.
+	 * @return array|null
+	 */
+	protected static function parse_hex_color( $value ) {
+		$normalized = sanitize_hex_color( $value );
+
+		if ( ! is_string( $normalized ) ) {
+			return null;
+		}
+
+		return array(
+			'r' => hexdec( substr( $normalized, 1, 2 ) ),
+			'g' => hexdec( substr( $normalized, 3, 2 ) ),
+			'b' => hexdec( substr( $normalized, 5, 2 ) ),
+		);
+	}
+
+	/**
+	 * Convert RGB values to HSL.
+	 *
+	 * @param array $rgb RGB channels.
+	 * @return array
+	 */
+	protected static function rgb_to_hsl( $rgb ) {
+		$red       = $rgb['r'] / 255;
+		$green     = $rgb['g'] / 255;
+		$blue      = $rgb['b'] / 255;
+		$max       = max( $red, $green, $blue );
+		$min       = min( $red, $green, $blue );
+		$delta     = $max - $min;
+		$lightness = ( $max + $min ) / 2;
+
+		if ( 0.0 === $delta ) {
+			return array(
+				'h' => 0,
+				's' => 0,
+				'l' => $lightness,
+			);
+		}
+
+		$saturation = $lightness > 0.5
+			? $delta / ( 2 - $max - $min )
+			: $delta / ( $max + $min );
+
+		switch ( $max ) {
+			case $red:
+				$hue = fmod( ( $green - $blue ) / $delta + ( $green < $blue ? 6 : 0 ), 6 );
+				break;
+			case $green:
+				$hue = ( $blue - $red ) / $delta + 2;
+				break;
+			default:
+				$hue = ( $red - $green ) / $delta + 4;
+				break;
+		}
+
+		return array(
+			'h' => $hue * 60,
+			's' => $saturation,
+			'l' => $lightness,
+		);
+	}
+
+	/**
+	 * Build the iframe filter string used by the editor preview.
+	 *
+	 * @param string $target_color Target color.
+	 * @param bool   $invert_tone Whether invert tone is enabled.
+	 * @return string
+	 */
+	protected static function build_shader_filter( $target_color, $invert_tone ) {
+		$baseline_rgb = self::parse_hex_color( '#c8956c' );
+		$target_rgb   = self::parse_hex_color( $target_color );
+
+		if ( ! $baseline_rgb || ! $target_rgb ) {
+			return $invert_tone ? 'invert(1) hue-rotate(180deg)' : 'none';
+		}
+
+		$baseline_hsl = self::rgb_to_hsl( $baseline_rgb );
+		$target_hsl   = self::rgb_to_hsl( $target_rgb );
+		$hue_delta    = fmod( ( $target_hsl['h'] - $baseline_hsl['h'] + 540 ), 360 ) - 180;
+		$saturation_ratio = self::clamp(
+			$target_hsl['s'] / max( $baseline_hsl['s'], 0.01 ),
+			0,
+			2.5
+		);
+		$brightness_ratio = self::clamp(
+			$target_hsl['l'] / max( $baseline_hsl['l'], 0.01 ),
+			0.75,
+			1.35
+		);
+		$parts = array();
+
+		if ( $invert_tone ) {
+			$parts[] = 'invert(1)';
+			$parts[] = 'hue-rotate(180deg)';
+		}
+
+		if ( abs( $hue_delta ) > 0.5 ) {
+			$parts[] = 'hue-rotate(' . round( $hue_delta ) . 'deg)';
+		}
+
+		if ( abs( $saturation_ratio - 1 ) > 0.02 ) {
+			$parts[] = 'saturate(' . number_format( $saturation_ratio, 2, '.', '' ) . ')';
+		}
+
+		if ( abs( $brightness_ratio - 1 ) > 0.03 ) {
+			$parts[] = 'brightness(' . number_format( $brightness_ratio, 2, '.', '' ) . ')';
+		}
+
+		return empty( $parts ) ? 'none' : implode( ' ', $parts );
+	}
+
+	/**
+	 * Sanitize persisted iframe props.
+	 *
+	 * @param mixed $value Raw iframe props.
+	 * @return array
+	 */
+	protected static function get_iframe_props( $value ) {
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		$filter = isset( $value['filter'] ) ? sanitize_text_field( $value['filter'] ) : '';
+		$filter = preg_match( '/^[a-z0-9().,%#\s-]+$/i', $filter ) ? $filter : '';
+		$mix_blend_mode = isset( $value['mixBlendMode'] ) ? sanitize_key( $value['mixBlendMode'] ) : '';
+
+		if ( ! in_array( $mix_blend_mode, self::get_shader_blend_modes(), true ) ) {
+			$mix_blend_mode = '';
+		}
+
+		if ( '' === $filter || '' === $mix_blend_mode ) {
+			return array();
+		}
+
+		return array(
+			'filter'       => $filter,
+			'mixBlendMode' => $mix_blend_mode,
+		);
+	}
+
+	/**
+	 * Build a srcdoc document for a shader asset with inline overrides.
+	 *
+	 * @param array $config Normalized block config.
+	 * @return string
+	 */
+	protected static function get_shader_srcdoc( $config ) {
+		$file = isset( $config['shader']['file'] ) ? basename( $config['shader']['file'] ) : '';
+
+		if ( '' === $file ) {
+			return '';
+		}
+
+		$path = WP_RADIANT_SHADERS_DIR . 'assets/radiant-static/' . $file;
+
+		if ( ! file_exists( $path ) ) {
+			return '';
+		}
+
+		$html = file_get_contents( $path );
+
+		if ( ! is_string( $html ) || '' === $html ) {
+			return '';
+		}
+
+		$overrides = '';
+
+		if ( empty( $config['showShaderLabel'] ) ) {
+			$overrides .= '<style id="wp-radiant-shader-inline-styles">.label{display:none !important;}</style>';
+		}
+
+		$overrides .= '<script>(function(){';
+		$overrides .= 'var params=' . wp_json_encode( $config['params'] ) . ';';
+		$overrides .= 'function applyParams(){if(!params){return;}Object.entries(params).forEach(function(entry){window.postMessage({type:"param",name:entry[0],value:entry[1]},"*");});}';
+		$overrides .= 'applyParams();window.addEventListener("load",applyParams,{once:true});setTimeout(applyParams,60);';
+		$overrides .= '}());</script>';
+
+		if ( false !== stripos( $html, '</body>' ) ) {
+			return preg_replace( '/<\/body>/i', $overrides . '</body>', $html, 1 ) ?: $html . $overrides;
+		}
+
+		return $html . $overrides;
+	}
+
+	/**
+	 * Enqueue the legacy frontend mount script for blocks missing iframe props.
+	 *
+	 * @return void
+	 */
+	protected static function enqueue_legacy_view_script() {
+		if ( self::$legacy_view_script_enqueued ) {
+			return;
+		}
+
+		wp_enqueue_script( 'wp-dom-ready' );
+		wp_add_inline_script(
+			'wp-dom-ready',
+			'(function(){var init=function(){document.querySelectorAll(".wp-radiant-shader__background[data-wp-radiant-config]").forEach(function(element){var rawConfig=element.getAttribute("data-wp-radiant-config");if(!rawConfig){return;}try{var config=JSON.parse(rawConfig);var iframe=element.querySelector("iframe.wp-radiant-shader__iframe");if(!iframe){iframe=document.createElement("iframe");iframe.className="wp-radiant-shader__iframe";iframe.setAttribute("title",config.shaderId||"Radiant shader");iframe.setAttribute("loading","lazy");iframe.setAttribute("aria-hidden","true");iframe.setAttribute("tabindex","-1");iframe.setAttribute("allow","autoplay; fullscreen");element.replaceChildren(iframe);}var nextSrc=(config.assetsBaseUrl||"")+(config.shaderFile||"");iframe.style.filter=config.computedFilter||"none";iframe.style.mixBlendMode=config.shaderBlendMode||"normal";var syncPresentation=function(){if(!iframe.contentDocument){return;}var doc=iframe.contentDocument;var styleNode=doc.getElementById("wp-radiant-shader-inline-styles");if(!styleNode){styleNode=doc.createElement("style");styleNode.id="wp-radiant-shader-inline-styles";doc.head.appendChild(styleNode);}styleNode.textContent=config.showShaderLabel?"":".label{display:none !important;}";if(config.params&&iframe.contentWindow){Object.entries(config.params).forEach(function(entry){iframe.contentWindow.postMessage({type:\"param\",name:entry[0],value:entry[1]},\"*\");});}};if(iframe.dataset.src!==nextSrc){iframe.dataset.src=nextSrc;iframe.onload=syncPresentation;iframe.src=nextSrc;}else{syncPresentation();}}catch(error){}});};if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init,{once:true});}else{init();}}());',
+			'after'
+		);
+
+		self::$legacy_view_script_enqueued = true;
+	}
+
+	/**
 	 * Sanitize block config against the shader manifest.
 	 *
 	 * @param array $attributes Block attributes.
@@ -219,6 +447,7 @@ class Plugin {
 		$show_shader_label = isset( $attributes['showShaderLabel'] ) ? (bool) $attributes['showShaderLabel'] : false;
 		$invert_tone = isset( $attributes['invertTone'] ) ? (bool) $attributes['invertTone'] : false;
 		$shader_blend_mode = isset( $attributes['shaderBlendMode'] ) ? sanitize_key( $attributes['shaderBlendMode'] ) : 'normal';
+		$iframe_props = isset( $attributes['iframeProps'] ) ? self::get_iframe_props( $attributes['iframeProps'] ) : array();
 
 		if ( ! isset( $schemes[ $scheme ] ) ) {
 			$scheme = 'amber';
@@ -269,17 +498,21 @@ class Plugin {
 			$params = $defaults;
 		}
 
+		$target_color = 'theme' === $color_mode ? $theme_color_value : $schemes[ $scheme ];
+		$computed_filter = self::build_shader_filter( $target_color, $invert_tone );
+
 		return array(
 			'shader'          => $shader,
 			'shaderId'        => $shader_id,
 			'colorMode'       => $color_mode,
 			'scheme'          => $scheme,
-			'schemeFilter'    => 'preset' === $color_mode ? $schemes[ $scheme ] : 'none',
+			'computedFilter'  => $computed_filter,
 			'themeColorSlug'  => $theme_color_slug,
 			'themeColorValue' => $theme_color_value,
 			'showShaderLabel' => $show_shader_label,
 			'invertTone'      => $invert_tone,
 			'shaderBlendMode' => $shader_blend_mode,
+			'iframeProps'     => $iframe_props,
 			'params'          => $params,
 		);
 	}
@@ -293,6 +526,8 @@ class Plugin {
 	 */
 	public static function render_radiant_shader_block( $attributes, $content ) {
 		$config = self::normalize_block_config( $attributes );
+		$srcdoc = ! empty( $config['iframeProps'] ) ? self::get_shader_srcdoc( $config ) : '';
+		$use_static_iframe = '' !== $srcdoc;
 
 		$wrapper_attributes = get_block_wrapper_attributes(
 			array(
@@ -309,12 +544,16 @@ class Plugin {
 			)
 		);
 
+		if ( ! $use_static_iframe ) {
+			self::enqueue_legacy_view_script();
+		}
+
 		$payload = array(
 			'shaderId'        => $config['shaderId'],
 			'shaderFile'      => $config['shader']['file'],
 			'colorMode'       => $config['colorMode'],
 			'scheme'          => $config['scheme'],
-			'schemeFilter'    => $config['schemeFilter'],
+			'computedFilter'  => $config['computedFilter'],
 			'showShaderLabel' => $config['showShaderLabel'],
 			'themeColorSlug'  => $config['themeColorSlug'],
 			'themeColorValue' => $config['themeColorValue'],
@@ -323,15 +562,29 @@ class Plugin {
 			'params'          => $config['params'],
 			'assetsBaseUrl'   => WP_RADIANT_SHADERS_URL . 'assets/radiant-static/',
 		);
-
 		ob_start();
 		?>
 		<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
 			<div
 				class="wp-radiant-shader__background"
 				aria-hidden="true"
-				data-wp-radiant-config="<?php echo esc_attr( wp_json_encode( $payload ) ); ?>"
-			></div>
+				<?php if ( ! $use_static_iframe ) : ?>
+					data-wp-radiant-config="<?php echo esc_attr( wp_json_encode( $payload ) ); ?>"
+				<?php endif; ?>
+			>
+				<?php if ( $use_static_iframe && '' !== $srcdoc ) : ?>
+					<iframe
+						class="wp-radiant-shader__iframe"
+						title="<?php echo esc_attr( $config['shaderId'] ); ?>"
+						loading="lazy"
+						aria-hidden="true"
+						tabindex="-1"
+						allow="autoplay; fullscreen"
+						style="<?php echo esc_attr( sprintf( 'filter:%1$s;mix-blend-mode:%2$s;', $config['iframeProps']['filter'], $config['iframeProps']['mixBlendMode'] ) ); ?>"
+						srcdoc="<?php echo esc_attr( $srcdoc ); ?>"
+					></iframe>
+				<?php endif; ?>
+			</div>
 			<div class="wp-radiant-shader__overlay"></div>
 			<div class="wp-radiant-shader__content">
 				<?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>

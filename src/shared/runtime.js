@@ -1,5 +1,23 @@
 import { buildShaderFilter, resolveSchemeColor } from './color-treatment';
 
+export function buildRadiantShaderIframeProps( {
+	colorMode,
+	scheme,
+	themeColorValue,
+	invertTone,
+	shaderBlendMode,
+} ) {
+	const targetColor =
+		colorMode === 'theme' ? themeColorValue : resolveSchemeColor( scheme );
+
+	return {
+		filter: buildShaderFilter( targetColor, {
+			invertTone: Boolean( invertTone ),
+		} ),
+		mixBlendMode: shaderBlendMode || 'normal',
+	};
+}
+
 function applyShaderParams( iframe, params ) {
 	if ( ! iframe?.contentWindow || ! params ) {
 		return;

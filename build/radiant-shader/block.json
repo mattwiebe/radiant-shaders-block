@@ -56,13 +56,16 @@
       "type": "string",
       "default": "normal"
     },
+    "iframeProps": {
+      "type": "object",
+      "default": {}
+    },
     "params": {
       "type": "object",
       "default": {}
     }
   },
   "editorScript": "file:./index.js",
-  "viewScript": "file:./view.js",
   "editorStyle": "file:./index.css",
   "style": "file:./style-index.css"
 }

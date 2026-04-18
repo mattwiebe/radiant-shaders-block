@@ -24,7 +24,10 @@ import {
 	buildShaderFilter,
 	resolveSchemeColor,
 } from '../shared/color-treatment';
-import { mountRadiantShader } from '../shared/runtime';
+import {
+	buildRadiantShaderIframeProps,
+	mountRadiantShader,
+} from '../shared/runtime';
 
 function getShader( shaderId ) {
 	return shaders.find( ( shader ) => shader.id === shaderId ) || shaders[ 0 ];
@@ -145,6 +148,7 @@ export default function Edit( { attributes, setAttributes } ) {
 		showShaderLabel,
 		invertTone,
 		shaderBlendMode,
+		iframeProps,
 		params,
 	} = attributes;
 	const shader = useMemo( () => getShader( shaderId ), [ shaderId ] );
@@ -176,6 +180,13 @@ export default function Edit( { attributes, setAttributes } ) {
 			: resolveSchemeColor( scheme );
 	const computedShaderFilter = buildShaderFilter( targetShaderColor, {
 		invertTone,
+	} );
+	const computedIframeProps = buildRadiantShaderIframeProps( {
+		colorMode,
+		scheme,
+		themeColorValue: effectiveThemeColorValue,
+		invertTone,
+		shaderBlendMode,
 	} );
 	const shaderOptions = useMemo(
 		() => getFilteredShaderOptions( shaderType ),
@@ -209,6 +220,16 @@ export default function Edit( { attributes, setAttributes } ) {
 		resolvedThemeColorValue,
 		setAttributes,
 	] );
+
+	useEffect( () => {
+		const hasSameProps =
+			iframeProps?.filter === computedIframeProps.filter &&
+			iframeProps?.mixBlendMode === computedIframeProps.mixBlendMode;
+
+		if ( ! hasSameProps ) {
+			setAttributes( { iframeProps: computedIframeProps } );
+		}
+	}, [ computedIframeProps, iframeProps, setAttributes ] );
 
 	useEffect( () => {
 		if ( ! previewRef.current ) {
