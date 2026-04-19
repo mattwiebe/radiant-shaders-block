@@ -1,13 +1,13 @@
 {
 	"$schema": "https://schemas.wp.org/trunk/block.json",
 	"apiVersion": 3,
-	"name": "wp-radiant-shaders/radiant-shader",
+	"name": "radiant-shaders-block/radiant-shader",
 	"version": "0.1.0",
 	"title": "Radiant Shader",
 	"category": "design",
 	"icon": "art",
 	"description": "Use Radiant shaders as animated block backgrounds with live parameter controls.",
-	"textdomain": "wp-radiant-shaders",
+	"textdomain": "radiant-shaders-block",
 	"supports": {
 		"align": [ "wide", "full" ],
 		"dimensions": {

@@ -43,10 +43,7 @@ function getShaderSrc( config ) {
 	const params = new URLSearchParams();
 
 	if ( config.params && Object.keys( config.params ).length ) {
-		params.set(
-			'wp_radiant_params',
-			encodeURIComponent( JSON.stringify( config.params ) )
-		);
+		params.set( 'wp_radiant_params', JSON.stringify( config.params ) );
 	}
 
 	const query = params.toString();
@@ -64,8 +61,9 @@ function resolveThemeColor( element, config ) {
 	}
 
 	const styles = window.getComputedStyle(
-		element.closest( '.wp-block-wp-radiant-shaders-radiant-shader' ) ||
-			document.documentElement
+		element.closest(
+			'.wp-block-radiant-shaders-block-radiant-shader, .wp-block-wp-radiant-shaders-radiant-shader'
+		) || document.documentElement
 	);
 
 	return styles

@@ -1,8 +1,16 @@
 {
-  "name": "wp-radiant-shaders",
+  "name": "radiant-shaders-block",
   "version": "0.1.0",
   "private": true,
   "description": "WordPress block plugin for using Radiant shaders as animated backgrounds.",
+  "homepage": "https://github.com/mattwiebe/radiant-shaders-block",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mattwiebe/radiant-shaders-block.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mattwiebe/radiant-shaders-block/issues"
+  },
   "license": "MIT",
   "scripts": {
     "sync:radiant": "node scripts/sync-radiant.mjs",

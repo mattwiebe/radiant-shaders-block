@@ -211,6 +211,23 @@ export function buildShaderFilter( targetColor, { invertTone = false } = {} ) {
 	return parts.length ? parts.join( ' ' ) : 'none';
 }
 
+export function buildShaderSurface( targetColor, mixRatio = 0.18 ) {
+	const baseRgb = parseCssColor( '#120804' );
+	const targetRgb = parseCssColor( targetColor );
+
+	if ( ! baseRgb || ! targetRgb ) {
+		return '#120804';
+	}
+
+	const blend = {
+		r: Math.round( targetRgb.r * mixRatio + baseRgb.r * ( 1 - mixRatio ) ),
+		g: Math.round( targetRgb.g * mixRatio + baseRgb.g * ( 1 - mixRatio ) ),
+		b: Math.round( targetRgb.b * mixRatio + baseRgb.b * ( 1 - mixRatio ) ),
+	};
+
+	return `rgb(${ blend.r }, ${ blend.g }, ${ blend.b })`;
+}
+
 export function resolveSchemeColor( scheme ) {
 	return COLOR_SCHEME_MAP[ scheme ]?.color || BASELINE_AMBER;
 }

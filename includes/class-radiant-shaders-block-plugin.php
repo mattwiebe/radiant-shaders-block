@@ -2,10 +2,10 @@
 /**
  * Plugin bootstrap.
  *
- * @package WPRadiantShaders
+ * @package RadiantShadersBlock
  */
 
-namespace WPRadiantShaders;
+namespace RadiantShadersBlock;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -42,7 +42,7 @@ class Plugin {
 	 * @return void
 	 */
 	public static function register_block() {
-		$block_dir = WP_RADIANT_SHADERS_DIR . 'build/radiant-shader';
+		$block_dir = RADIANT_SHADERS_BLOCK_DIR . 'build/radiant-shader';
 
 		if ( ! file_exists( $block_dir . '/block.json' ) ) {
 			return;
@@ -54,6 +54,54 @@ class Plugin {
 				'render_callback' => array( __CLASS__, 'render_radiant_shader_block' ),
 			)
 		);
+
+		self::register_legacy_block_alias();
+	}
+
+	/**
+	 * Register the previous block namespace so existing content keeps working.
+	 *
+	 * @return void
+	 */
+	protected static function register_legacy_block_alias() {
+		$registry = \WP_Block_Type_Registry::get_instance();
+
+		if ( $registry->is_registered( 'wp-radiant-shaders/radiant-shader' ) ) {
+			return;
+		}
+
+		$block = $registry->get_registered( 'radiant-shaders-block/radiant-shader' );
+
+		if ( ! $block ) {
+			return;
+		}
+
+		$supports = is_array( $block->supports ) ? $block->supports : array();
+		$supports['inserter'] = false;
+
+		register_block_type(
+			'wp-radiant-shaders/radiant-shader',
+			array(
+				'api_version'          => $block->api_version,
+				'title'                => $block->title,
+				'description'          => $block->description,
+				'category'             => $block->category,
+				'icon'                 => $block->icon,
+				'keywords'             => $block->keywords,
+				'attributes'           => $block->attributes,
+				'supports'             => $supports,
+				'example'              => $block->example,
+				'uses_context'         => $block->uses_context,
+				'provides_context'     => $block->provides_context,
+				'selectors'            => $block->selectors,
+				'style_handles'        => $block->style_handles,
+				'editor_style_handles' => $block->editor_style_handles,
+				'script_handles'       => $block->script_handles,
+				'editor_script_handles'=> $block->editor_script_handles,
+				'view_script_handles'  => $block->view_script_handles,
+				'render_callback'      => $block->render_callback,
+			)
+		);
 	}
 
 	/**
@@ -62,7 +110,7 @@ class Plugin {
 	 * @return void
 	 */
 	public static function enqueue_editor_config() {
-		$handle = 'wp-radiant-shaders-radiant-shader-editor-script';
+		$handle = 'radiant-shaders-block-radiant-shader-editor-script';
 
 		if ( ! wp_script_is( $handle, 'registered' ) ) {
 			return;
@@ -70,9 +118,9 @@ class Plugin {
 
 		wp_add_inline_script(
 			$handle,
-			'window.WPRadiantShadersBlock = ' . wp_json_encode(
+			'window.RadiantShadersBlockEditor = ' . wp_json_encode(
 				array(
-					'assetsBaseUrl' => esc_url_raw( WP_RADIANT_SHADERS_URL . 'assets/radiant-static/' ),
+					'assetsBaseUrl' => esc_url_raw( RADIANT_SHADERS_BLOCK_URL . 'assets/radiant-static/' ),
 				)
 			) . ';',
 			'before'
@@ -89,7 +137,7 @@ class Plugin {
 			return self::$shader_metadata;
 		}
 
-		$path = WP_RADIANT_SHADERS_DIR . 'assets/radiant-shaders.json';
+		$path = RADIANT_SHADERS_BLOCK_DIR . 'assets/radiant-shaders.json';
 
 		if ( ! file_exists( $path ) ) {
 			self::$shader_metadata = array();
@@ -332,6 +380,28 @@ class Plugin {
 	}
 
 	/**
+	 * Build the wrapper surface color used beneath the blended shader iframe.
+	 *
+	 * @param string $target_color Target color.
+	 * @return string
+	 */
+	protected static function build_shader_surface( $target_color ) {
+		$base_rgb   = self::parse_hex_color( '#120804' );
+		$target_rgb = self::parse_hex_color( $target_color );
+
+		if ( ! $base_rgb || ! $target_rgb ) {
+			return '#120804';
+		}
+
+		$mix_ratio = 0.18;
+		$red   = (int) round( $target_rgb['r'] * $mix_ratio + $base_rgb['r'] * ( 1 - $mix_ratio ) );
+		$green = (int) round( $target_rgb['g'] * $mix_ratio + $base_rgb['g'] * ( 1 - $mix_ratio ) );
+		$blue  = (int) round( $target_rgb['b'] * $mix_ratio + $base_rgb['b'] * ( 1 - $mix_ratio ) );
+
+		return sprintf( 'rgb(%d, %d, %d)', $red, $green, $blue );
+	}
+
+	/**
 	 * Sanitize persisted iframe props.
 	 *
 	 * @param mixed $value Raw iframe props.
@@ -371,14 +441,13 @@ class Plugin {
 			return '';
 		}
 
-		$url = WP_RADIANT_SHADERS_URL . 'assets/radiant-static/' . ltrim( $config['shader']['file'], '/' );
-		$params = array();
+		$url = RADIANT_SHADERS_BLOCK_URL . 'assets/radiant-static/' . ltrim( $config['shader']['file'], '/' );
 
-		if ( ! empty( $config['params'] ) ) {
-			$params['wp_radiant_params'] = wp_json_encode( $config['params'] );
+		if ( empty( $config['params'] ) ) {
+			return $url;
 		}
 
-		return empty( $params ) ? $url : add_query_arg( $params, $url );
+		return $url . '?wp_radiant_params=' . rawurlencode( wp_json_encode( $config['params'] ) );
 	}
 
 	/**
@@ -476,6 +545,7 @@ class Plugin {
 
 		$target_color = 'theme' === $color_mode ? $theme_color_value : $schemes[ $scheme ];
 		$computed_filter = self::build_shader_filter( $target_color, $invert_tone );
+		$surface_color = self::build_shader_surface( $target_color );
 
 		return array(
 			'shader'          => $shader,
@@ -483,6 +553,7 @@ class Plugin {
 			'colorMode'       => $color_mode,
 			'scheme'          => $scheme,
 			'computedFilter'  => $computed_filter,
+			'surfaceColor'    => $surface_color,
 			'themeColorSlug'  => $theme_color_slug,
 			'themeColorValue' => $theme_color_value,
 			'invertTone'      => $invert_tone,
@@ -510,11 +581,7 @@ class Plugin {
 				'style' => sprintf(
 					'--wp-radiant-shader-blend-mode:%1$s;--wp-radiant-surface:%2$s;',
 					esc_attr( $config['shaderBlendMode'] ),
-					esc_attr(
-						$config['themeColorValue']
-							? sprintf( 'color-mix(in srgb, %s 18%%, #120804)', $config['themeColorValue'] )
-							: '#120804'
-					)
+					esc_attr( $config['surfaceColor'] )
 				),
 			)
 		);
@@ -534,7 +601,7 @@ class Plugin {
 			'invertTone'      => $config['invertTone'],
 			'shaderBlendMode' => $config['shaderBlendMode'],
 			'params'          => $config['params'],
-			'assetsBaseUrl'   => WP_RADIANT_SHADERS_URL . 'assets/radiant-static/',
+			'assetsBaseUrl'   => RADIANT_SHADERS_BLOCK_URL . 'assets/radiant-static/',
 		);
 		ob_start();
 		?>
@@ -542,6 +609,7 @@ class Plugin {
 			<div
 				class="wp-radiant-shader__background"
 				aria-hidden="true"
+				style="<?php echo esc_attr( '--wp-radiant-surface:' . $config['surfaceColor'] . ';' ); ?>"
 				<?php if ( ! $use_static_iframe ) : ?>
 					data-wp-radiant-config="<?php echo esc_attr( wp_json_encode( $payload ) ); ?>"
 				<?php endif; ?>

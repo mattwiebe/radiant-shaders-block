@@ -21,6 +21,7 @@ import {
 import shaders from '../shared/radiant-shaders.json';
 import { COLOR_SCHEMES } from '../shared/color-schemes';
 import {
+	buildShaderSurface,
 	buildShaderFilter,
 	resolveSchemeColor,
 } from '../shared/color-treatment';
@@ -153,7 +154,7 @@ export default function Edit( { attributes, setAttributes } ) {
 	const shader = useMemo( () => getShader( shaderId ), [ shaderId ] );
 	const [ shaderType, setShaderType ] = useState( 'all' );
 	const previewRef = useRef( null );
-	const assetsBaseUrl = window.WPRadiantShadersBlock?.assetsBaseUrl || '';
+	const assetsBaseUrl = window.RadiantShadersBlockEditor?.assetsBaseUrl || '';
 	const themePaletteOptions = useSelect(
 		( select ) =>
 			getThemePaletteOptions(
@@ -177,6 +178,7 @@ export default function Edit( { attributes, setAttributes } ) {
 		colorMode === 'theme'
 			? effectiveThemeColorValue
 			: resolveSchemeColor( scheme );
+	const shaderSurfaceColor = buildShaderSurface( targetShaderColor );
 	const computedShaderFilter = buildShaderFilter( targetShaderColor, {
 		invertTone,
 	} );
@@ -263,10 +265,7 @@ export default function Edit( { attributes, setAttributes } ) {
 		className: 'wp-radiant-shader',
 		style: {
 			'--wp-radiant-shader-blend-mode': shaderBlendMode,
-			'--wp-radiant-surface':
-				colorMode === 'theme' && effectiveThemeColorValue
-					? `color-mix(in srgb, ${ effectiveThemeColorValue } 18%, #120804)`
-					: '#120804',
+			'--wp-radiant-surface': shaderSurfaceColor,
 		},
 	} );
 
@@ -291,17 +290,17 @@ export default function Edit( { attributes, setAttributes } ) {
 			</BlockControls>
 			<InspectorControls>
 				<PanelBody
-					title={ __( 'Shader', 'wp-radiant-shaders' ) }
+					title={ __( 'Shader', 'radiant-shaders-block' ) }
 					initialOpen
 				>
 					<SelectControl
-						label={ __( 'Shader type', 'wp-radiant-shaders' ) }
+						label={ __( 'Shader type', 'radiant-shaders-block' ) }
 						value={ shaderType }
 						options={ SHADER_TYPE_OPTIONS }
 						onChange={ ( value ) => setShaderType( value ) }
 					/>
 					<SelectControl
-						label={ __( 'Shader', 'wp-radiant-shaders' ) }
+						label={ __( 'Shader', 'radiant-shaders-block' ) }
 						value={ shader.id }
 						options={ shaderOptions }
 						onChange={ ( value ) => {
@@ -314,11 +313,11 @@ export default function Edit( { attributes, setAttributes } ) {
 					/>
 				</PanelBody>
 				<PanelBody
-					title={ __( 'Color', 'wp-radiant-shaders' ) }
+					title={ __( 'Color', 'radiant-shaders-block' ) }
 					initialOpen={ false }
 				>
 					<SelectControl
-						label={ __( 'Color source', 'wp-radiant-shaders' ) }
+						label={ __( 'Color source', 'radiant-shaders-block' ) }
 						value={ colorMode }
 						options={ COLOR_MODE_OPTIONS }
 						onChange={ ( value ) =>
@@ -329,7 +328,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						<SelectControl
 							label={ __(
 								'Preset palette',
-								'wp-radiant-shaders'
+								'radiant-shaders-block'
 							) }
 							value={ scheme }
 							options={ COLOR_SCHEMES.map( ( option ) => ( {
@@ -344,7 +343,10 @@ export default function Edit( { attributes, setAttributes } ) {
 					) }
 					{ colorMode === 'theme' && (
 						<SelectControl
-							label={ __( 'Theme color', 'wp-radiant-shaders' ) }
+							label={ __(
+								'Theme color',
+								'radiant-shaders-block'
+							) }
 							value={
 								hasCustomThemeColor
 									? '__custom__'
@@ -354,7 +356,7 @@ export default function Edit( { attributes, setAttributes } ) {
 								{
 									label: __(
 										'Choose a color',
-										'wp-radiant-shaders'
+										'radiant-shaders-block'
 									),
 									value: '',
 								},
@@ -363,7 +365,7 @@ export default function Edit( { attributes, setAttributes } ) {
 											{
 												label: __(
 													'Custom',
-													'wp-radiant-shaders'
+													'radiant-shaders-block'
 												),
 												value: '__custom__',
 											},
@@ -389,11 +391,11 @@ export default function Edit( { attributes, setAttributes } ) {
 								themePaletteOptions.length
 									? __(
 											'Uses the selected theme palette color as the basis for shader hue rotation.',
-											'wp-radiant-shaders'
+											'radiant-shaders-block'
 									  )
 									: __(
 											'No theme palette colors were detected for this site.',
-											'wp-radiant-shaders'
+											'radiant-shaders-block'
 									  )
 							}
 						/>
@@ -405,11 +407,11 @@ export default function Edit( { attributes, setAttributes } ) {
 								id="wp-radiant-shader-theme-color-value"
 								label={ __(
 									'Dialed-in color',
-									'wp-radiant-shaders'
+									'radiant-shaders-block'
 								) }
 								help={ __(
 									'Starts from the selected theme color, then lets you tune it.',
-									'wp-radiant-shaders'
+									'radiant-shaders-block'
 								) }
 							>
 								<ColorPicker
@@ -424,20 +426,20 @@ export default function Edit( { attributes, setAttributes } ) {
 							</BaseControl>
 						) }
 					<ToggleControl
-						label={ __( 'Invert tone', 'wp-radiant-shaders' ) }
+						label={ __( 'Invert tone', 'radiant-shaders-block' ) }
 						checked={ invertTone }
 						onChange={ ( value ) =>
 							setAttributes( { invertTone: value } )
 						}
 						help={ __(
 							'Applies invert plus 180-degree hue swapping before the computed color treatment.',
-							'wp-radiant-shaders'
+							'radiant-shaders-block'
 						) }
 					/>
 					<SelectControl
 						label={ __(
 							'Shader blend mode',
-							'wp-radiant-shaders'
+							'radiant-shaders-block'
 						) }
 						value={ shaderBlendMode }
 						options={ SHADER_BLEND_MODE_OPTIONS }
@@ -446,17 +448,20 @@ export default function Edit( { attributes, setAttributes } ) {
 						}
 						help={ __(
 							'Blends the shader layer against the block surface.',
-							'wp-radiant-shaders'
+							'radiant-shaders-block'
 						) }
 					/>
 					<BaseControl
 						id="wp-radiant-shader-computed-filter"
-						label={ __( 'Computed filter', 'wp-radiant-shaders' ) }
+						label={ __(
+							'Computed filter',
+							'radiant-shaders-block'
+						) }
 						help={ computedShaderFilter }
 					/>
 				</PanelBody>
 				<PanelBody
-					title={ __( 'Parameters', 'wp-radiant-shaders' ) }
+					title={ __( 'Parameters', 'radiant-shaders-block' ) }
 					initialOpen
 				>
 					{ shader.params?.length ? (
@@ -484,7 +489,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						<BaseControl
 							help={ __(
 								'This shader does not expose adjustable parameters.',
-								'wp-radiant-shaders'
+								'radiant-shaders-block'
 							) }
 						/>
 					) }

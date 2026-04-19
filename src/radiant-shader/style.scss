@@ -1,23 +1,26 @@
+.wp-block-radiant-shaders-block-radiant-shader,
 .wp-block-wp-radiant-shaders-radiant-shader {
   position: relative;
   overflow: hidden;
   isolation: isolate;
   min-height: 300px;
-  background:
-    radial-gradient(circle at top left, rgba(255, 178, 76, 0.08), transparent 42%),
-    radial-gradient(circle at bottom right, rgba(255, 110, 0, 0.06), transparent 38%),
-    var(--wp-radiant-surface, #120804);
   color: #fff3de;
 }
 
+.wp-block-radiant-shaders-block-radiant-shader > .wp-radiant-shader__background,
 .wp-block-wp-radiant-shaders-radiant-shader > .wp-radiant-shader__background {
   position: absolute;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+  background:
+    radial-gradient(circle at top left, rgba(255, 178, 76, 0.14), transparent 48%),
+    radial-gradient(circle at bottom right, rgba(255, 110, 0, 0.1), transparent 44%),
+    var(--wp-radiant-surface, #120804);
 }
 
+.wp-block-radiant-shaders-block-radiant-shader > .wp-radiant-shader__overlay,
 .wp-block-wp-radiant-shaders-radiant-shader > .wp-radiant-shader__overlay {
   position: absolute;
   inset: 0;
@@ -26,6 +29,7 @@
   pointer-events: none;
 }
 
+.wp-block-radiant-shaders-block-radiant-shader > .wp-radiant-shader__content,
 .wp-block-wp-radiant-shaders-radiant-shader > .wp-radiant-shader__content {
   position: relative;
   z-index: 2;

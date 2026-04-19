@@ -1,0 +1,56 @@
+name: Build And Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build plugin assets
+        run: npm run build
+
+      - name: Assemble release package
+        run: |
+          rm -rf dist
+          mkdir -p dist/radiant-shaders-block
+          cp -R assets build includes dist/radiant-shaders-block/
+          cp radiant-shaders-block.php readme.txt dist/radiant-shaders-block/
+          cd dist
+          zip -r radiant-shaders-block.zip radiant-shaders-block
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: radiant-shaders-block
+          path: dist/radiant-shaders-block.zip
+
+      - name: Publish GitHub release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/radiant-shaders-block.zip --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/radiant-shaders-block.zip --generate-notes
+          fi
