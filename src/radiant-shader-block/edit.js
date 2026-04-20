@@ -262,16 +262,16 @@ export default function Edit( { attributes, setAttributes } ) {
 	] );
 
 	const blockProps = useBlockProps( {
-		className: 'wp-radiant-shader',
+		className: 'radiant-shader-block',
 		style: {
-			'--wp-radiant-shader-blend-mode': shaderBlendMode,
-			'--wp-radiant-surface': shaderSurfaceColor,
+			'--radiant-shader-block-blend-mode': shaderBlendMode,
+			'--radiant-shader-block-surface': shaderSurfaceColor,
 		},
 	} );
 
 	const innerBlocksProps = useInnerBlocksProps(
 		{
-			className: 'wp-radiant-shader__content',
+			className: 'radiant-shader-block__content',
 		},
 		{
 			templateLock: false,
@@ -404,7 +404,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						themeColorSlug &&
 						effectiveThemeColorValue && (
 							<BaseControl
-								id="wp-radiant-shader-theme-color-value"
+								id="radiant-shader-block-theme-color-value"
 								label={ __(
 									'Dialed-in color',
 									'radiant-shaders-block'
@@ -452,7 +452,7 @@ export default function Edit( { attributes, setAttributes } ) {
 						) }
 					/>
 					<BaseControl
-						id="wp-radiant-shader-computed-filter"
+						id="radiant-shader-block-computed-filter"
 						label={ __(
 							'Computed filter',
 							'radiant-shaders-block'
@@ -498,10 +498,10 @@ export default function Edit( { attributes, setAttributes } ) {
 			<div { ...blockProps }>
 				<div
 					ref={ previewRef }
-					className="wp-radiant-shader__background"
+					className="radiant-shader-block__background"
 					aria-hidden="true"
 				/>
-				<div className="wp-radiant-shader__overlay" />
+				<div className="radiant-shader-block__overlay" />
 				<div { ...innerBlocksProps } />
 			</div>
 		</>

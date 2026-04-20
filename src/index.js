@@ -1,1 +1,1 @@
-import './radiant-shader';
+import './radiant-shader-block';

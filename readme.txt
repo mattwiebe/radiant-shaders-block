@@ -4,7 +4,7 @@ Tags: gutenberg, block, background, animation, design
 Requires at least: 6.6
 Tested up to: 6.9
 Requires PHP: 7.2
-Stable tag: 0.1.0
+Stable tag: 0.9.0
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -52,6 +52,6 @@ Yes. The shader runs as a background layer while nested blocks are rendered abov
 
 == Changelog ==
 
-= 0.1.0 =
+= 0.9.0 =
 
-* Initial public release.
+* First public packaged release.

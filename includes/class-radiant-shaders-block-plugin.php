@@ -42,7 +42,7 @@ class Plugin {
 	 * @return void
 	 */
 	public static function register_block() {
-		$block_dir = RADIANT_SHADERS_BLOCK_DIR . 'build/radiant-shader';
+		$block_dir = RADIANT_SHADERS_BLOCK_DIR . 'build/radiant-shader-block';
 
 		if ( ! file_exists( $block_dir . '/block.json' ) ) {
 			return;
@@ -463,7 +463,7 @@ class Plugin {
 		wp_enqueue_script( 'wp-dom-ready' );
 		wp_add_inline_script(
 			'wp-dom-ready',
-				'(function(){var init=function(){document.querySelectorAll(".wp-radiant-shader__background[data-wp-radiant-config]").forEach(function(element){var rawConfig=element.getAttribute("data-wp-radiant-config");if(!rawConfig){return;}try{var config=JSON.parse(rawConfig);var iframe=element.querySelector("iframe.wp-radiant-shader__iframe");if(!iframe){iframe=document.createElement("iframe");iframe.className="wp-radiant-shader__iframe";iframe.setAttribute("title",config.shaderId||"Radiant shader");iframe.setAttribute("loading","lazy");iframe.setAttribute("aria-hidden","true");iframe.setAttribute("tabindex","-1");iframe.setAttribute("allow","autoplay; fullscreen");element.replaceChildren(iframe);}var params=new URLSearchParams();if(config.params&&Object.keys(config.params).length){params.set("wp_radiant_params",JSON.stringify(config.params));}var nextSrc=(config.assetsBaseUrl||"")+(config.shaderFile||"")+(params.toString()?"?"+params.toString():"");iframe.style.filter=config.computedFilter||"none";iframe.style.mixBlendMode=config.shaderBlendMode||"normal";if(iframe.dataset.src!==nextSrc){iframe.dataset.src=nextSrc;iframe.src=nextSrc;}}catch(error){}});};if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init,{once:true});}else{init();}}());',
+				'(function(){var init=function(){document.querySelectorAll(".radiant-shader-block__background[data-wp-radiant-config]").forEach(function(element){var rawConfig=element.getAttribute("data-wp-radiant-config");if(!rawConfig){return;}try{var config=JSON.parse(rawConfig);var iframe=element.querySelector("iframe.radiant-shader-block__iframe");if(!iframe){iframe=document.createElement("iframe");iframe.className="radiant-shader-block__iframe";iframe.setAttribute("title",config.shaderId||"Radiant shader");iframe.setAttribute("loading","lazy");iframe.setAttribute("aria-hidden","true");iframe.setAttribute("tabindex","-1");iframe.setAttribute("allow","autoplay; fullscreen");element.replaceChildren(iframe);}var params=new URLSearchParams();if(config.params&&Object.keys(config.params).length){params.set("wp_radiant_params",JSON.stringify(config.params));}var nextSrc=(config.assetsBaseUrl||"")+(config.shaderFile||"")+(params.toString()?"?"+params.toString():"");iframe.style.filter=config.computedFilter||"none";iframe.style.mixBlendMode=config.shaderBlendMode||"normal";if(iframe.dataset.src!==nextSrc){iframe.dataset.src=nextSrc;iframe.src=nextSrc;}}catch(error){}});};if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",init,{once:true});}else{init();}}());',
 				'after'
 		);
 
@@ -577,9 +577,9 @@ class Plugin {
 
 		$wrapper_attributes = get_block_wrapper_attributes(
 			array(
-				'class' => 'wp-radiant-shader',
+				'class' => 'radiant-shader-block',
 				'style' => sprintf(
-					'--wp-radiant-shader-blend-mode:%1$s;--wp-radiant-surface:%2$s;',
+					'--radiant-shader-block-blend-mode:%1$s;',
 					esc_attr( $config['shaderBlendMode'] ),
 					esc_attr( $config['surfaceColor'] )
 				),
@@ -607,16 +607,16 @@ class Plugin {
 		?>
 		<div <?php echo $wrapper_attributes; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>>
 			<div
-				class="wp-radiant-shader__background"
+				class="radiant-shader-block__background"
 				aria-hidden="true"
-				style="<?php echo esc_attr( '--wp-radiant-surface:' . $config['surfaceColor'] . ';' ); ?>"
+				style="<?php echo esc_attr( '--radiant-shader-block-surface:' . $config['surfaceColor'] . ';' ); ?>"
 				<?php if ( ! $use_static_iframe ) : ?>
 					data-wp-radiant-config="<?php echo esc_attr( wp_json_encode( $payload ) ); ?>"
 				<?php endif; ?>
 			>
 				<?php if ( $use_static_iframe && '' !== $iframe_src ) : ?>
 					<iframe
-						class="wp-radiant-shader__iframe"
+						class="radiant-shader-block__iframe"
 						title="<?php echo esc_attr( $config['shaderId'] ); ?>"
 						loading="lazy"
 						aria-hidden="true"
@@ -627,8 +627,8 @@ class Plugin {
 					></iframe>
 				<?php endif; ?>
 			</div>
-			<div class="wp-radiant-shader__overlay"></div>
-			<div class="wp-radiant-shader__content">
+			<div class="radiant-shader-block__overlay"></div>
+			<div class="radiant-shader-block__content">
 				<?php echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</div>
 		</div>

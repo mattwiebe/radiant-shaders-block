@@ -3,7 +3,7 @@
  * Plugin Name:       Radiant Shaders Block
  * Plugin URI:        https://github.com/mattwiebe/radiant-shaders-block
  * Description:       Animated Radiant shader backgrounds for the block editor.
- * Version:           0.1.0
+ * Version:           0.9.0
  * Requires at least: 6.6
  * Requires PHP:      7.2
  * Author:            Matt Wiebe

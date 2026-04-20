@@ -1,6 +1,6 @@
 {
   "name": "radiant-shaders-block",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "private": true,
   "description": "WordPress block plugin for using Radiant shaders as animated backgrounds.",
   "homepage": "https://github.com/mattwiebe/radiant-shaders-block",

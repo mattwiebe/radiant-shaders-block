@@ -87,11 +87,11 @@ export function mountRadiantShader( element, config ) {
 		return null;
 	}
 
-	let iframe = element.querySelector( 'iframe.wp-radiant-shader__iframe' );
+	let iframe = element.querySelector( 'iframe.radiant-shader-block__iframe' );
 
 	if ( ! iframe ) {
 		iframe = document.createElement( 'iframe' );
-		iframe.className = 'wp-radiant-shader__iframe';
+		iframe.className = 'radiant-shader-block__iframe';
 		iframe.setAttribute( 'title', config.shaderId || 'Radiant shader' );
 		iframe.setAttribute( 'loading', 'lazy' );
 		iframe.setAttribute( 'aria-hidden', 'true' );
